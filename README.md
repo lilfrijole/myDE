@@ -2,7 +2,11 @@
 
 > **What if your IDE had an away message?**
 
-myDE is a fully customizable, AI-powered development environment wrapped in the warm, pixelated embrace of AOL Instant Messenger. Yes, that AIM. The one with the door sounds. The buddy list. The gradient title bars that made you feel like a hacker in 2003.
+myDE
+my developer environment. my vibe.
+
+it looks like AIM.
+it acts like an IDE.
 
 Except this time, your buddy is an AI that builds entire web apps for you.
 
