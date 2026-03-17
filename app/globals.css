@@ -1,26 +1,528 @@
 @import "tailwindcss";
 
+/* ── AIM / Win98 CSS Custom Properties ── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --aim-bg: #c0c0c0;
+  --aim-text: #000000;
+  --aim-accent: #000080;
+  --aim-titlebar-start: #000080;
+  --aim-titlebar-end: #1084d0;
+  --aim-titlebar-inactive-start: #808080;
+  --aim-titlebar-inactive-end: #b0b0b0;
+  --aim-font: Tahoma, "MS Sans Serif", system-ui, sans-serif;
+  --aim-font-size: 11px;
+  --aim-chat-bg: #000000;
+  --aim-chat-text: #00ff00;
+  --aim-button-face: #c0c0c0;
+  --aim-button-highlight: #ffffff;
+  --aim-button-shadow: #808080;
+  --aim-button-dark-shadow: #404040;
+  --aim-window-border: #dfdfdf;
+  --aim-editor-font: Consolas, "Courier New", monospace;
+  --aim-editor-font-size: 13px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--aim-bg);
+  --color-foreground: var(--aim-text);
+  --font-sans: var(--aim-font);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── Base Reset & Typography ── */
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: var(--aim-bg);
+  color: var(--aim-text);
+  font-family: var(--aim-font);
+  font-size: var(--aim-font-size);
+  line-height: 1.3;
+  overflow: hidden;
+  user-select: none;
+  -webkit-font-smoothing: none;
+}
+
+/* ── Win98 3D Border Utilities ── */
+.win98-raised {
+  border: 2px solid;
+  border-color: var(--aim-button-highlight) var(--aim-button-dark-shadow) var(--aim-button-dark-shadow) var(--aim-button-highlight);
+}
+
+.win98-sunken {
+  border: 2px solid;
+  border-color: var(--aim-button-shadow) var(--aim-button-highlight) var(--aim-button-highlight) var(--aim-button-shadow);
+}
+
+.win98-raised-thin {
+  border: 1px solid;
+  border-color: var(--aim-button-highlight) var(--aim-button-shadow) var(--aim-button-shadow) var(--aim-button-highlight);
+}
+
+.win98-sunken-thin {
+  border: 1px solid;
+  border-color: var(--aim-button-shadow) var(--aim-button-highlight) var(--aim-button-highlight) var(--aim-button-shadow);
+}
+
+/* ── Win98 Window Frame ── */
+.win98-window {
+  background: var(--aim-button-face);
+  border: 2px solid;
+  border-color: var(--aim-button-highlight) var(--aim-button-dark-shadow) var(--aim-button-dark-shadow) var(--aim-button-highlight);
+  box-shadow: inset 1px 1px 0 var(--aim-button-highlight), inset -1px -1px 0 var(--aim-button-shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Title Bar ── */
+.win98-titlebar {
+  background: linear-gradient(90deg, var(--aim-titlebar-start), var(--aim-titlebar-end));
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 11px;
+  padding: 2px 3px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 20px;
+  cursor: default;
+}
+
+.win98-titlebar-inactive {
+  background: linear-gradient(90deg, var(--aim-titlebar-inactive-start), var(--aim-titlebar-inactive-end));
+  color: #d4d0c8;
+  font-weight: bold;
+  font-size: 11px;
+  padding: 2px 3px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 20px;
+  cursor: default;
+}
+
+.win98-titlebar-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-left: 2px;
+}
+
+/* ── Title Bar Buttons (minimize, maximize, close) ── */
+.win98-titlebar-btn {
+  width: 16px;
+  height: 14px;
+  background: var(--aim-button-face);
+  border: 1px solid;
+  border-color: var(--aim-button-highlight) var(--aim-button-dark-shadow) var(--aim-button-dark-shadow) var(--aim-button-highlight);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  color: var(--aim-text);
+  flex-shrink: 0;
+}
+
+.win98-titlebar-btn:active {
+  border-color: var(--aim-button-dark-shadow) var(--aim-button-highlight) var(--aim-button-highlight) var(--aim-button-dark-shadow);
+  padding: 1px 0 0 1px;
+}
+
+/* ── Win98 Button ── */
+.win98-button {
+  background: var(--aim-button-face);
+  border: 2px solid;
+  border-color: var(--aim-button-highlight) var(--aim-button-dark-shadow) var(--aim-button-dark-shadow) var(--aim-button-highlight);
+  padding: 2px 12px;
+  font-family: var(--aim-font);
+  font-size: var(--aim-font-size);
+  cursor: pointer;
+  min-height: 23px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.win98-button:active {
+  border-color: var(--aim-button-dark-shadow) var(--aim-button-highlight) var(--aim-button-highlight) var(--aim-button-dark-shadow);
+  padding: 3px 11px 1px 13px;
+}
+
+.win98-button:focus-visible {
+  outline: 1px dotted #000000;
+  outline-offset: -4px;
+}
+
+/* ── Win98 Tabs ── */
+.win98-tab-bar {
+  display: flex;
+  padding: 0 4px;
+  gap: 0;
+  position: relative;
+  bottom: -2px;
+  z-index: 1;
+}
+
+.win98-tab {
+  background: var(--aim-button-face);
+  border: 2px solid;
+  border-color: var(--aim-button-highlight) var(--aim-button-dark-shadow) var(--aim-button-dark-shadow) var(--aim-button-highlight);
+  border-bottom: none;
+  padding: 3px 12px;
+  font-family: var(--aim-font);
+  font-size: var(--aim-font-size);
+  cursor: pointer;
+  position: relative;
+  margin-bottom: -2px;
+}
+
+.win98-tab-active {
+  background: var(--aim-button-face);
+  border: 2px solid;
+  border-color: var(--aim-button-highlight) var(--aim-button-dark-shadow) var(--aim-button-dark-shadow) var(--aim-button-highlight);
+  border-bottom: 2px solid var(--aim-button-face);
+  padding: 3px 12px 5px;
+  font-family: var(--aim-font);
+  font-size: var(--aim-font-size);
+  font-weight: bold;
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+  margin-top: -2px;
+}
+
+.win98-tab-content {
+  border: 2px solid;
+  border-color: var(--aim-button-highlight) var(--aim-button-dark-shadow) var(--aim-button-dark-shadow) var(--aim-button-highlight);
+  background: var(--aim-button-face);
+  padding: 8px;
+  position: relative;
+  z-index: 0;
+}
+
+/* ── Win98 Input ── */
+.win98-input {
+  background: #ffffff;
+  border: 2px solid;
+  border-color: var(--aim-button-shadow) var(--aim-button-highlight) var(--aim-button-highlight) var(--aim-button-shadow);
+  padding: 2px 4px;
+  font-family: var(--aim-font);
+  font-size: var(--aim-font-size);
+  outline: none;
+}
+
+.win98-input:focus {
+  outline: none;
+}
+
+/* ── Win98 Select / Dropdown ── */
+.win98-select {
+  background: #ffffff;
+  border: 2px solid;
+  border-color: var(--aim-button-shadow) var(--aim-button-highlight) var(--aim-button-highlight) var(--aim-button-shadow);
+  padding: 2px 4px;
+  font-family: var(--aim-font);
+  font-size: var(--aim-font-size);
+  outline: none;
+  cursor: pointer;
+}
+
+/* ── Win98 Menu Bar ── */
+.win98-menubar {
+  background: var(--aim-button-face);
+  border-bottom: 1px solid var(--aim-button-shadow);
+  padding: 1px 0;
+  display: flex;
+  gap: 0;
+  font-size: var(--aim-font-size);
+}
+
+.win98-menubar-item {
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.win98-menubar-item:hover {
+  background: var(--aim-accent);
+  color: #ffffff;
+}
+
+/* ── Win98 Dropdown Menu ── */
+.win98-dropdown {
+  position: absolute;
+  background: var(--aim-button-face);
+  border: 2px solid;
+  border-color: var(--aim-button-highlight) var(--aim-button-dark-shadow) var(--aim-button-dark-shadow) var(--aim-button-highlight);
+  padding: 2px;
+  z-index: 9999;
+  min-width: 160px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.win98-dropdown-item {
+  padding: 3px 24px 3px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.win98-dropdown-item:hover {
+  background: var(--aim-accent);
+  color: #ffffff;
+}
+
+.win98-dropdown-separator {
+  height: 1px;
+  background: var(--aim-button-shadow);
+  margin: 2px 4px;
+  border-bottom: 1px solid var(--aim-button-highlight);
+}
+
+/* ── Win98 Status Bar ── */
+.win98-statusbar {
+  background: var(--aim-button-face);
+  border-top: 1px solid var(--aim-button-highlight);
+  display: flex;
+  align-items: center;
+  padding: 2px 4px;
+  gap: 4px;
+  font-size: var(--aim-font-size);
+  min-height: 22px;
+}
+
+.win98-statusbar-section {
+  border: 1px solid;
+  border-color: var(--aim-button-shadow) var(--aim-button-highlight) var(--aim-button-highlight) var(--aim-button-shadow);
+  padding: 1px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Win98 Toolbar ── */
+.win98-toolbar {
+  background: var(--aim-button-face);
+  border-bottom: 1px solid var(--aim-button-shadow);
+  border-top: 1px solid var(--aim-button-highlight);
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 28px;
+}
+
+.win98-toolbar-btn {
+  width: 24px;
+  height: 22px;
+  background: transparent;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+}
+
+.win98-toolbar-btn:hover {
+  border-color: var(--aim-button-highlight) var(--aim-button-shadow) var(--aim-button-shadow) var(--aim-button-highlight);
+}
+
+.win98-toolbar-btn:active {
+  border-color: var(--aim-button-shadow) var(--aim-button-highlight) var(--aim-button-highlight) var(--aim-button-shadow);
+}
+
+.win98-toolbar-separator {
+  width: 2px;
+  height: 18px;
+  border-left: 1px solid var(--aim-button-shadow);
+  border-right: 1px solid var(--aim-button-highlight);
+  margin: 0 2px;
+}
+
+/* ── Win98 Checkbox / Toggle ── */
+.win98-checkbox {
+  width: 13px;
+  height: 13px;
+  background: #ffffff;
+  border: 2px solid;
+  border-color: var(--aim-button-shadow) var(--aim-button-highlight) var(--aim-button-highlight) var(--aim-button-shadow);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  vertical-align: middle;
+  position: relative;
+}
+
+.win98-checkbox:checked::after {
+  content: "✓";
+  position: absolute;
+  top: -2px;
+  left: 1px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+/* ── Win98 Slider / Range ── */
+.win98-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.win98-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border: 1px solid;
+  border-color: var(--aim-button-shadow) var(--aim-button-highlight) var(--aim-button-highlight) var(--aim-button-shadow);
+  background: var(--aim-button-face);
+}
+
+.win98-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 11px;
+  height: 20px;
+  background: var(--aim-button-face);
+  border: 2px solid;
+  border-color: var(--aim-button-highlight) var(--aim-button-dark-shadow) var(--aim-button-dark-shadow) var(--aim-button-highlight);
+  margin-top: -9px;
+}
+
+/* ── AIM Chat Dark Area ── */
+.aim-chat-area {
+  background: var(--aim-chat-bg);
+  color: var(--aim-chat-text);
+  font-family: var(--aim-font);
+  font-size: 12px;
+  border: 2px solid;
+  border-color: var(--aim-button-shadow) var(--aim-button-highlight) var(--aim-button-highlight) var(--aim-button-shadow);
+  overflow-y: auto;
+  padding: 4px;
+}
+
+/* ── Win98 Scrollbar Styling ── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--aim-button-face) var(--aim-button-face);
+}
+
+::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+::-webkit-scrollbar-track {
+  background: #dfdfdf;
+  background-image: url("data:image/svg+xml,%3Csvg width='2' height='2' viewBox='0 0 2 2' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='0' y='0' width='1' height='1' fill='%23c0c0c0'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23c0c0c0'/%3E%3C/svg%3E");
+  background-size: 2px 2px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--aim-button-face);
+  border: 2px solid;
+  border-color: var(--aim-button-highlight) var(--aim-button-dark-shadow) var(--aim-button-dark-shadow) var(--aim-button-highlight);
+}
+
+::-webkit-scrollbar-button {
+  background: var(--aim-button-face);
+  border: 2px solid;
+  border-color: var(--aim-button-highlight) var(--aim-button-dark-shadow) var(--aim-button-dark-shadow) var(--aim-button-highlight);
+  width: 16px;
+  height: 16px;
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--aim-button-face);
+}
+
+/* ── Context Menu ── */
+.win98-context-menu {
+  position: fixed;
+  background: var(--aim-button-face);
+  border: 2px solid;
+  border-color: var(--aim-button-highlight) var(--aim-button-dark-shadow) var(--aim-button-dark-shadow) var(--aim-button-highlight);
+  padding: 2px;
+  z-index: 99999;
+  min-width: 140px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* ── Resize Handles ── */
+.resize-handle {
+  position: absolute;
+  z-index: 10;
+}
+
+.resize-handle-n { top: -3px; left: 3px; right: 3px; height: 6px; cursor: n-resize; }
+.resize-handle-s { bottom: -3px; left: 3px; right: 3px; height: 6px; cursor: s-resize; }
+.resize-handle-e { right: -3px; top: 3px; bottom: 3px; width: 6px; cursor: e-resize; }
+.resize-handle-w { left: -3px; top: 3px; bottom: 3px; width: 6px; cursor: w-resize; }
+.resize-handle-ne { top: -3px; right: -3px; width: 8px; height: 8px; cursor: ne-resize; }
+.resize-handle-nw { top: -3px; left: -3px; width: 8px; height: 8px; cursor: nw-resize; }
+.resize-handle-se { bottom: -3px; right: -3px; width: 8px; height: 8px; cursor: se-resize; }
+.resize-handle-sw { bottom: -3px; left: -3px; width: 8px; height: 8px; cursor: sw-resize; }
+
+/* ── AIM Ticker / Marquee ── */
+@keyframes ticker-scroll {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.aim-ticker {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.aim-ticker-text {
+  display: inline-block;
+  animation: ticker-scroll 20s linear infinite;
+}
+
+/* ── Dictation pulse ── */
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.dictation-pulse {
+  animation: pulse-red 1s ease-in-out infinite;
+}
+
+/* ── AIM Typing Indicator ── */
+@keyframes aim-bounce {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-4px); }
+}
+
+.aim-typing-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--aim-chat-text);
+  animation: aim-bounce 1.2s ease-in-out infinite;
+}
+
+.aim-typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.aim-typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+/* ── Loading Spinner ── */
+@keyframes spin98 {
+  to { transform: rotate(360deg); }
+}
+
+.win98-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--aim-button-shadow);
+  border-top-color: var(--aim-accent);
+  border-radius: 50%;
+  animation: spin98 0.8s linear infinite;
 }
