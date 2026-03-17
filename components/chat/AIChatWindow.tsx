@@ -15,9 +15,13 @@ export default function AIChatWindow() {
   const addMessage = useChatStore((s) => s.addMessage);
   const createChat = useChatStore((s) => s.createChat);
   const setStreaming = useChatStore((s) => s.setStreaming);
+  const setV0ChatId = useChatStore((s) => s.setV0ChatId);
   const setDemoUrl = useChatStore((s) => s.setDemoUrl);
   const setFiles = useProjectStore((s) => s.setFiles);
   const setChatId = useProjectStore((s) => s.setChatId);
+  const setProject = useProjectStore((s) => s.setProject);
+  const saveCurrentProject = useProjectStore((s) => s.saveCurrentProject);
+  const renameChat = useChatStore((s) => s.renameChat);
   const aleoMode = useSettingsStore((s) => s.aleoMode);
   const privacyMode = useSettingsStore((s) => s.privacyMode);
 
@@ -28,7 +32,12 @@ export default function AIChatWindow() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat?.messages.length]);
 
-  const title = aleoMode ? "myDE Chat (Aleo Mode)" : "myDE Chat";
+  const projectName = useProjectStore((s) => s.currentProjectName);
+  const chatName = chat?.name;
+  const displayName = projectName ?? chatName;
+  const title = displayName
+    ? `${displayName}${aleoMode ? " (Aleo)" : ""}`
+    : aleoMode ? "myDE Chat (Aleo Mode)" : "myDE Chat";
 
   const handleSend = useCallback(
     async (message: string) => {
@@ -36,8 +45,10 @@ export default function AIChatWindow() {
 
       if (!chatId) {
         chatId = `chat-${Date.now()}`;
-        createChat(chatId);
+        const projectName = message.length > 40 ? message.slice(0, 40) + "..." : message;
+        createChat(chatId, projectName);
         setChatId(chatId);
+        setProject(chatId, projectName, chatId);
       }
 
       addMessage(chatId, {
@@ -56,16 +67,18 @@ export default function AIChatWindow() {
         addMessage(chatId, {
           id: `msg-status-${Date.now()}`,
           role: "system",
-          content: "⏳ Generating code with V0... this can take up to 2 minutes.",
+          content: "Preheating the oven... this can take up to 2 minutes.",
           timestamp: new Date().toISOString(),
         });
+
+        const existingV0Id = chat?.v0ChatId ?? null;
 
         const res = await fetch("/api/v0/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             message,
-            chatId: chat?.id !== chatId ? undefined : chatId,
+            chatId: existingV0Id,
             aleoMode,
             privacyMode,
           }),
@@ -84,6 +97,10 @@ export default function AIChatWindow() {
             timestamp: new Date().toISOString(),
           });
         } else {
+          if (data.id && !existingV0Id) {
+            setV0ChatId(chatId, data.id);
+          }
+
           addMessage(chatId, {
             id: `msg-ai-${Date.now()}`,
             role: "assistant",
@@ -111,6 +128,7 @@ export default function AIChatWindow() {
             setDemoUrl(chatId, data.demo);
           }
 
+          saveCurrentProject();
           soundManager.play("message-chime");
         }
       } catch (err) {
@@ -124,7 +142,7 @@ export default function AIChatWindow() {
         setStreaming(chatId, false);
       }
     },
-    [activeChatId, chat, createChat, addMessage, setStreaming, setDemoUrl, setFiles, setChatId, aleoMode, privacyMode]
+    [activeChatId, chat, createChat, renameChat, addMessage, setStreaming, setV0ChatId, setDemoUrl, setFiles, setChatId, setProject, saveCurrentProject, aleoMode, privacyMode]
   );
 
   return (

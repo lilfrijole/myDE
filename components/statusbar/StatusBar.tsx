@@ -41,7 +41,7 @@ export default function StatusBar() {
       {isStreaming && (
         <div className="win98-statusbar-section aim-ticker" style={{ width: 200, overflow: "hidden" }}>
           <span className="aim-ticker-text" style={{ fontSize: 10 }}>
-            AI is generating code...
+            Preheating the oven... this can take up to 2 minutes.
           </span>
         </div>
       )}

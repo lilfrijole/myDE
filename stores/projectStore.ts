@@ -1,9 +1,20 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export interface ProjectFile {
   name: string;
   content: string;
   locked: boolean;
+}
+
+export interface SavedProject {
+  id: string;
+  name: string;
+  chatId: string | null;
+  files: ProjectFile[];
+  activeFileName: string | null;
+  openFileNames: string[];
+  savedAt: string;
 }
 
 interface ProjectState {
@@ -14,6 +25,7 @@ interface ProjectState {
   activeFileName: string | null;
   openFileNames: string[];
   modifiedFiles: Set<string>;
+  savedProjects: SavedProject[];
 
   setProject: (id: string, name: string, chatId?: string) => void;
   clearProject: () => void;
@@ -25,9 +37,12 @@ interface ProjectState {
   toggleFileLock: (name: string) => void;
   setChatId: (chatId: string) => void;
   markFileSaved: (name: string) => void;
+  saveCurrentProject: () => void;
+  loadProject: (projectId: string) => void;
+  deleteProject: (projectId: string) => void;
 }
 
-export const useProjectStore = create<ProjectState>()((set, get) => ({
+export const useProjectStore = create<ProjectState>()(persist((set, get) => ({
   currentProjectId: null,
   currentProjectName: null,
   currentChatId: null,
@@ -35,6 +50,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   activeFileName: null,
   openFileNames: [],
   modifiedFiles: new Set<string>(),
+  savedProjects: [],
 
   setProject: (id, name, chatId) =>
     set({
@@ -108,5 +124,80 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     const modified = new Set(get().modifiedFiles);
     modified.delete(name);
     set({ modifiedFiles: modified });
+  },
+
+  saveCurrentProject: () => {
+    const s = get();
+    if (!s.currentChatId && !s.files.length) return;
+
+    const id = s.currentProjectId ?? s.currentChatId ?? `proj-${Date.now()}`;
+    const name = s.currentProjectName ?? "Untitled Project";
+
+    const existing = s.savedProjects.filter((p) => p.id !== id);
+    const project: SavedProject = {
+      id,
+      name,
+      chatId: s.currentChatId,
+      files: s.files,
+      activeFileName: s.activeFileName,
+      openFileNames: s.openFileNames,
+      savedAt: new Date().toISOString(),
+    };
+
+    set({
+      currentProjectId: id,
+      currentProjectName: name,
+      savedProjects: [project, ...existing],
+    });
+  },
+
+  loadProject: (projectId) => {
+    const s = get();
+    const project = s.savedProjects.find((p) => p.id === projectId);
+    if (!project) return;
+
+    if (s.currentProjectId || s.files.length) {
+      s.saveCurrentProject();
+    }
+
+    set({
+      currentProjectId: project.id,
+      currentProjectName: project.name,
+      currentChatId: project.chatId,
+      files: project.files,
+      activeFileName: project.activeFileName,
+      openFileNames: project.openFileNames,
+      modifiedFiles: new Set(),
+    });
+  },
+
+  deleteProject: (projectId) => {
+    set((s) => ({
+      savedProjects: s.savedProjects.filter((p) => p.id !== projectId),
+    }));
+  },
+}), {
+  name: "myde-project",
+  storage: {
+    getItem: (name) => {
+      const raw = localStorage.getItem(name);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed?.state?.modifiedFiles) {
+        parsed.state.modifiedFiles = new Set(parsed.state.modifiedFiles);
+      }
+      return parsed;
+    },
+    setItem: (name, value) => {
+      const toStore = {
+        ...value,
+        state: {
+          ...value.state,
+          modifiedFiles: [...value.state.modifiedFiles],
+        },
+      };
+      localStorage.setItem(name, JSON.stringify(toStore));
+    },
+    removeItem: (name) => localStorage.removeItem(name),
   },
 }));

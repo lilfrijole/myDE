@@ -78,6 +78,7 @@ function FolderGroup({ node, allFiles }: { node: FolderNode; allFiles: { name: s
 export default function FileExplorer() {
   const files = useProjectStore((s) => s.files);
   const openFileNames = useProjectStore((s) => s.openFileNames);
+  const projectName = useProjectStore((s) => s.currentProjectName);
   const [tab, setTab] = useState<"all" | "open">("all");
   const [search, setSearch] = useState("");
 
@@ -94,8 +95,10 @@ export default function FileExplorer() {
       )
     : displayFiles;
 
+  const explorerTitle = projectName ? `${projectName}` : "Project Files";
+
   return (
-    <Window id="file-explorer" title="Project Files" icon={<span>🏃</span>}>
+    <Window id="file-explorer" title={explorerTitle} icon={<span>🏃</span>}>
       <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--aim-button-face)" }}>
         {/* myDE Logo area */}
         <div

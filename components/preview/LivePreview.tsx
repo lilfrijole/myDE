@@ -84,7 +84,7 @@ export default function LivePreview() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: `Please update the following files with these changes and regenerate the preview:\n\n${updatePrompt}`,
-          chatId: activeChatId,
+          chatId: chat?.v0ChatId ?? null,
           aleoMode,
           privacyMode,
         }),
