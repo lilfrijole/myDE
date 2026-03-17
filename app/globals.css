@@ -405,6 +405,12 @@ body {
   border-color: var(--aim-button-shadow) var(--aim-button-highlight) var(--aim-button-highlight) var(--aim-button-shadow);
   overflow-y: auto;
   padding: 4px;
+  user-select: text;
+  cursor: text;
+}
+
+.win98-input, textarea, input[type="text"] {
+  user-select: text;
 }
 
 /* ── Win98 Scrollbar Styling ── */

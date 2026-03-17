@@ -17,6 +17,7 @@ export default function AIChatWindow() {
   const setStreaming = useChatStore((s) => s.setStreaming);
   const setV0ChatId = useChatStore((s) => s.setV0ChatId);
   const setDemoUrl = useChatStore((s) => s.setDemoUrl);
+  const setVersionId = useChatStore((s) => s.setVersionId);
   const setFiles = useProjectStore((s) => s.setFiles);
   const setChatId = useProjectStore((s) => s.setChatId);
   const setProject = useProjectStore((s) => s.setProject);
@@ -62,7 +63,7 @@ export default function AIChatWindow() {
 
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 120000);
+        const timeout = setTimeout(() => controller.abort(), 300000);
 
         addMessage(chatId, {
           id: `msg-status-${Date.now()}`,
@@ -99,6 +100,10 @@ export default function AIChatWindow() {
         } else {
           if (data.id && !existingV0Id) {
             setV0ChatId(chatId, data.id);
+          }
+
+          if (data.versionId) {
+            setVersionId(chatId, data.versionId);
           }
 
           addMessage(chatId, {
@@ -142,7 +147,7 @@ export default function AIChatWindow() {
         setStreaming(chatId, false);
       }
     },
-    [activeChatId, chat, createChat, renameChat, addMessage, setStreaming, setV0ChatId, setDemoUrl, setFiles, setChatId, setProject, saveCurrentProject, aleoMode, privacyMode]
+    [activeChatId, chat, createChat, renameChat, addMessage, setStreaming, setV0ChatId, setVersionId, setDemoUrl, setFiles, setChatId, setProject, saveCurrentProject, aleoMode, privacyMode]
   );
 
   return (
@@ -150,7 +155,7 @@ export default function AIChatWindow() {
       {/* Messages area */}
       <div
         className="aim-chat-area"
-        style={{ flex: 1, overflow: "auto" }}
+        style={{ flex: 1, overflow: "auto", userSelect: "text" }}
       >
         {!chat?.messages.length && (
           <div style={{ color: "#808080", textAlign: "center", padding: 20 }}>

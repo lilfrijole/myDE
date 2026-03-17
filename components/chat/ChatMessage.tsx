@@ -25,7 +25,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
   }
 
   return (
-    <div style={{ marginBottom: 8, padding: "2px 0" }}>
+    <div style={{ marginBottom: 8, padding: "2px 0", userSelect: "text", cursor: "text" }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 2 }}>
         <span
           style={{
@@ -45,6 +45,8 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           lineHeight: 1.4,
           whiteSpace: "pre-wrap",
           wordBreak: "break-word",
+          userSelect: "text",
+          cursor: "text",
         }}
       >
         {message.content}

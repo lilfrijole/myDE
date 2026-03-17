@@ -4,7 +4,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Window from "@/components/windows/Window";
 import { useChatStore } from "@/stores/chatStore";
 import { useProjectStore } from "@/stores/projectStore";
-import { useSettingsStore } from "@/stores/settingsStore";
 
 type ViewportSize = "mobile" | "tablet" | "desktop";
 
@@ -14,28 +13,34 @@ const VIEWPORT_WIDTHS: Record<ViewportSize, string> = {
   desktop: "100%",
 };
 
+const SYNC_DEBOUNCE_MS = 2000;
+
 export default function LivePreview() {
   const activeChatId = useChatStore((s) => s.activeChatId);
   const chats = useChatStore((s) => s.chats);
-  const addMessage = useChatStore((s) => s.addMessage);
-  const setStreaming = useChatStore((s) => s.setStreaming);
   const setDemoUrl = useChatStore((s) => s.setDemoUrl);
+  const setVersionId = useChatStore((s) => s.setVersionId);
   const chat = activeChatId ? chats[activeChatId] : null;
   const demoUrl = chat?.demoUrl ?? null;
+  const v0ChatId = chat?.v0ChatId ?? null;
+  const versionId = chat?.versionId ?? null;
 
   const files = useProjectStore((s) => s.files);
   const modifiedFiles = useProjectStore((s) => s.modifiedFiles);
   const setFiles = useProjectStore((s) => s.setFiles);
-  const aleoMode = useSettingsStore((s) => s.aleoMode);
-  const privacyMode = useSettingsStore((s) => s.privacyMode);
 
   const hasModifiedFiles = modifiedFiles.size > 0;
+  const canSync = hasModifiedFiles && !!v0ChatId && !!versionId;
 
   const [viewport, setViewport] = useState<ViewportSize>("desktop");
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [autoSync, setAutoSync] = useState(true);
+  const [lastSyncStatus, setLastSyncStatus] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const prevUrlRef = useRef<string | null>(null);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSyncRef = useRef(false);
 
   useEffect(() => {
     if (demoUrl && demoUrl !== prevUrlRef.current) {
@@ -43,6 +48,92 @@ export default function LivePreview() {
       prevUrlRef.current = demoUrl;
     }
   }, [demoUrl]);
+
+  const pushFilesToV0 = useCallback(async () => {
+    if (!v0ChatId || !versionId || !files.length || syncing) return;
+
+    const modifiedFilesList = files.filter((f) => modifiedFiles.has(f.name));
+    if (!modifiedFilesList.length) return;
+
+    setSyncing(true);
+    setLastSyncStatus(null);
+    pendingSyncRef.current = false;
+
+    try {
+      const res = await fetch("/api/v0/update-version", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chatId: v0ChatId,
+          versionId,
+          files: modifiedFilesList.map((f) => ({
+            name: f.name,
+            content: f.content,
+          })),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.error) {
+        setLastSyncStatus(`Error: ${data.error}`);
+        return;
+      }
+
+      if (data.versionId) {
+        setVersionId(activeChatId!, data.versionId);
+      }
+
+      if (data.demoUrl && data.demoUrl !== demoUrl) {
+        setDemoUrl(activeChatId!, data.demoUrl);
+      }
+
+      if (data.files?.length) {
+        setFiles(
+          data.files.map((f: { name: string; content: string }) => ({
+            name: f.name,
+            content: f.content,
+            locked: false,
+          }))
+        );
+      }
+
+      const modifiedSet = useProjectStore.getState().modifiedFiles;
+      const newModified = new Set(modifiedSet);
+      modifiedFilesList.forEach((f) => newModified.delete(f.name));
+      useProjectStore.setState({ modifiedFiles: newModified });
+
+      if (iframeRef.current && demoUrl) {
+        iframeRef.current.src = demoUrl;
+        setLoading(true);
+      }
+
+      setLastSyncStatus(`Synced ${modifiedFilesList.length} file(s)`);
+    } catch (err) {
+      setLastSyncStatus(`Sync failed: ${err instanceof Error ? err.message : "Unknown"}`);
+    } finally {
+      setSyncing(false);
+    }
+  }, [v0ChatId, versionId, files, modifiedFiles, syncing, activeChatId, demoUrl, setDemoUrl, setVersionId, setFiles]);
+
+  useEffect(() => {
+    if (!autoSync || !canSync || syncing) return;
+
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+    }
+
+    pendingSyncRef.current = true;
+    syncTimerRef.current = setTimeout(() => {
+      if (pendingSyncRef.current) {
+        pushFilesToV0();
+      }
+    }, SYNC_DEBOUNCE_MS);
+
+    return () => {
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    };
+  }, [autoSync, canSync, syncing, modifiedFiles, pushFilesToV0]);
 
   const handleRefresh = () => {
     if (iframeRef.current && demoUrl) {
@@ -54,85 +145,6 @@ export default function LivePreview() {
   const handleCopy = () => {
     if (demoUrl) navigator.clipboard.writeText(demoUrl);
   };
-
-  const handleSyncToPreview = useCallback(async () => {
-    if (!activeChatId || !files.length || syncing) return;
-    setSyncing(true);
-
-    const modifiedFilesList = files.filter((f) => modifiedFiles.has(f.name));
-    if (!modifiedFilesList.length) {
-      setSyncing(false);
-      return;
-    }
-
-    const updatePrompt = modifiedFilesList
-      .map((f) => `Update file "${f.name}" with this content:\n\`\`\`\n${f.content}\n\`\`\``)
-      .join("\n\n");
-
-    addMessage(activeChatId, {
-      id: `msg-sync-${Date.now()}`,
-      role: "system",
-      content: `🔄 Syncing ${modifiedFilesList.length} modified file(s) to preview...`,
-      timestamp: new Date().toISOString(),
-    });
-
-    if (chat) setStreaming(activeChatId, true);
-
-    try {
-      const res = await fetch("/api/v0/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: `Please update the following files with these changes and regenerate the preview:\n\n${updatePrompt}`,
-          chatId: chat?.v0ChatId ?? null,
-          aleoMode,
-          privacyMode,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.error) {
-        addMessage(activeChatId, {
-          id: `msg-sync-err-${Date.now()}`,
-          role: "assistant",
-          content: `Sync error: ${data.error}`,
-          timestamp: new Date().toISOString(),
-        });
-      } else {
-        addMessage(activeChatId, {
-          id: `msg-sync-ok-${Date.now()}`,
-          role: "assistant",
-          content: "Preview updated with your changes.",
-          timestamp: new Date().toISOString(),
-        });
-
-        if (data.files) {
-          setFiles(
-            data.files.map((f: { name: string; content: string }) => ({
-              name: f.name,
-              content: f.content,
-              locked: false,
-            }))
-          );
-        }
-
-        if (data.demo) {
-          setDemoUrl(activeChatId, data.demo);
-        }
-      }
-    } catch (err) {
-      addMessage(activeChatId, {
-        id: `msg-sync-err-${Date.now()}`,
-        role: "assistant",
-        content: `Sync failed: ${err instanceof Error ? err.message : "Unknown error"}`,
-        timestamp: new Date().toISOString(),
-      });
-    } finally {
-      if (chat) setStreaming(activeChatId, false);
-      setSyncing(false);
-    }
-  }, [activeChatId, chat, files, modifiedFiles, syncing, addMessage, setStreaming, setDemoUrl, setFiles, aleoMode, privacyMode]);
 
   return (
     <Window id="live-preview" title="Live Preview" icon={<span>🌐</span>}>
@@ -171,35 +183,71 @@ export default function LivePreview() {
           <span className="win98-toolbar-separator" />
           <button
             className="win98-button"
-            onClick={handleSyncToPreview}
-            disabled={!hasModifiedFiles || syncing || !activeChatId}
-            title="Push edited files to V0 and regenerate preview"
+            onClick={pushFilesToV0}
+            disabled={!canSync || syncing}
+            title="Push edited files to V0 and refresh preview"
             style={{
               fontSize: 9,
               padding: "1px 8px",
-              background: hasModifiedFiles ? "#006400" : undefined,
-              color: hasModifiedFiles ? "#fff" : undefined,
+              background: canSync ? "#006400" : undefined,
+              color: canSync ? "#fff" : undefined,
             }}
           >
             {syncing ? "Syncing..." : `Sync${hasModifiedFiles ? ` (${modifiedFiles.size})` : ""}`}
           </button>
+          <span className="win98-toolbar-separator" />
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 3,
+              fontSize: 9,
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+            title="Auto-sync files to preview after edits"
+          >
+            <input
+              type="checkbox"
+              checked={autoSync}
+              onChange={(e) => setAutoSync(e.target.checked)}
+              style={{ margin: 0, cursor: "pointer" }}
+            />
+            Auto
+          </label>
         </div>
 
-        {/* Modified files banner */}
-        {hasModifiedFiles && demoUrl && (
+        {/* Status bar */}
+        {(hasModifiedFiles || lastSyncStatus || syncing) && demoUrl && (
           <div
             style={{
-              padding: "3px 8px",
-              background: "#ffffcc",
+              padding: "2px 8px",
+              background: syncing ? "#e6f0ff" : lastSyncStatus?.startsWith("Error") ? "#ffe6e6" : hasModifiedFiles ? "#ffffcc" : "#e6ffe6",
               borderBottom: "1px solid #ccc",
-              fontSize: 10,
+              fontSize: 9,
               display: "flex",
               alignItems: "center",
               gap: 6,
             }}
           >
-            <span>⚠️</span>
-            <span>{modifiedFiles.size} file(s) modified locally. Click <strong>Sync</strong> to update preview.</span>
+            {syncing ? (
+              <>
+                <span className="win98-spinner" style={{ width: 10, height: 10, borderWidth: 2 }} />
+                <span>Pushing changes to V0...</span>
+              </>
+            ) : lastSyncStatus ? (
+              <span>{lastSyncStatus}</span>
+            ) : hasModifiedFiles && !autoSync ? (
+              <>
+                <span>⚠️</span>
+                <span>{modifiedFiles.size} file(s) modified. Click <strong>Sync</strong> or enable <strong>Auto</strong>.</span>
+              </>
+            ) : hasModifiedFiles && autoSync ? (
+              <>
+                <span>⏳</span>
+                <span>{modifiedFiles.size} file(s) changed, auto-syncing in {SYNC_DEBOUNCE_MS / 1000}s...</span>
+              </>
+            ) : null}
           </div>
         )}
 
@@ -236,7 +284,7 @@ export default function LivePreview() {
         >
           {demoUrl ? (
             <>
-              {(loading || syncing) && (
+              {loading && (
                 <div
                   style={{
                     position: "absolute",
@@ -251,11 +299,9 @@ export default function LivePreview() {
                   }}
                 >
                   <div className="win98-spinner" />
-                  {syncing && (
-                    <span style={{ fontSize: 10, color: "#666" }}>
-                      Syncing changes to V0...
-                    </span>
-                  )}
+                  <span style={{ fontSize: 10, color: "#666" }}>
+                    Loading preview...
+                  </span>
                 </div>
               )}
               <iframe

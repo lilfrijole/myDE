@@ -22,9 +22,22 @@ export async function POST(request: NextRequest) {
 
     if (chatId) {
       console.log("[v0/chat] Sending message to existing chat:", chatId);
-      const response = await v0.chats.sendMessage({ chatId, message: prompt });
-      console.log("[v0/chat] Got sendMessage response");
-      return NextResponse.json(response);
+      const response = await v0.chats.sendMessage({ chatId, message: prompt }) as {
+        id: string;
+        latestVersion?: {
+          id: string;
+          demoUrl?: string;
+          files?: { name: string; content?: string }[];
+        };
+      };
+      const version = response.latestVersion;
+      console.log("[v0/chat] Got sendMessage response, versionId:", version?.id, "files:", version?.files?.length ?? 0);
+      return NextResponse.json({
+        id: response.id,
+        versionId: version?.id ?? null,
+        files: version?.files?.map((f) => ({ name: f.name, content: f.content ?? "" })) ?? [],
+        demo: version?.demoUrl ?? null,
+      });
     }
 
     console.log("[v0/chat] Creating new chat...");
