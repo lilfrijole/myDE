@@ -2,7 +2,6 @@
 
 > **What if your IDE had an away message?**
 
-myDE
 my developer environment. my vibe.
 
 it looks like AIM.
